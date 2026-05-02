@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mafia - Host Panel</title>
+    <title>Mafia - Join Room</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         * { box-sizing: border-box; font-family: Arial, sans-serif; }
@@ -31,18 +31,19 @@
             border-bottom: 2px solid #ff3b3b;
             padding-bottom: 5px;
         }
-        label { display: block; margin: 8px 0 3px; font-size: 14px; }
+        label { display: block; margin-bottom: 4px; font-size: 14px; }
         input {
             width: 100%;
             padding: 10px;
+            margin-bottom: 12px;
             border-radius: 8px;
             border: none;
             outline: none;
         }
+        input.code { text-transform: uppercase; letter-spacing: 3px; font-size: 18px; font-weight: bold; }
         button {
             width: 100%;
             padding: 12px;
-            margin-top: 16px;
             border: none;
             border-radius: 10px;
             background: #ff3b3b;
@@ -52,6 +53,9 @@
             cursor: pointer;
         }
         button:hover { background: #e22b2b; }
+        .back { display: block; text-align: center; margin-top: 12px; color: #ccc; font-size: 13px; text-decoration: none; }
+        .back:hover { color: white; }
+        .error { background: #8b0000; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
         .footer { text-align: center; margin-top: auto; font-size: 12px; opacity: 0.6; padding: 10px 0; }
     </style>
 </head>
@@ -59,30 +63,21 @@
     <div id="bady-div">
         <img src="{{ url_for('static', filename='img/logo.png') }}" class="post-media">
         <fieldset>
-            <h3>Host Panel</h3>
+            <h3>Join a Room</h3>
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
             <form method="POST">
-                <label>Mafia</label>
-                <input type="number" name="mafia" value="0" min="0" required>
-                <label>Doctor (tbib)</label>
-                <input type="number" name="doctor" value="0" min="0" required>
-                <label>9awad</label>
-                <input type="number" name="n9awad" value="0" min="0" required>
-                <label>Saiad (w9)</label>
-                <input type="number" name="w9" value="0" min="0" required>
-                <label>Mafia Taskit</label>
-                <input type="number" name="mafia_taskit" value="0" min="0" required>
-                <label>Ghamir aw Ghadir</label>
-                <input type="number" name="ghamir_aw_ghadir" value="0" min="0" required>
-                <label>Mafia Haway</label>
-                <input type="number" name="mafia_haway" value="0" min="0" required>
-                <button>Start Game</button>
+                <label>Your name</label>
+                <input name="name" required autocomplete="off">
+                <label>Room code</label>
+                <input name="room_code" class="code" required autocomplete="off" maxlength="6">
+                <label>Password</label>
+                <input name="password" type="password" required autocomplete="off">
+                <button>Join</button>
             </form>
-
-            <h3 style="margin-top:20px;">Players ({{ players|length }})</h3>
-            {% for p in players.values() %}
-            <p>{{ p.name }}</p>
-            {% endfor %}
         </fieldset>
+        <a href="/" class="back">← Back</a>
     </div>
     <div class="footer">
         <hr>
