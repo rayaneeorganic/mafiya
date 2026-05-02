@@ -6,6 +6,8 @@ import string
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "faracha")
+
 rooms = {}
 
 
@@ -16,36 +18,11 @@ def generate_room_code():
             return code
 
 
+# ── Player routes ──────────────────────────────────────────────
+
 @app.route("/")
 def index():
     return render_template("index.html")
-
-
-@app.route("/create", methods=["GET", "POST"])
-def create():
-    if request.method == "POST":
-        name = request.form["name"].strip()
-        password = request.form["password"].strip()
-
-        if not name or not password:
-            return render_template("create.html", error="Name and password are required.")
-
-        room_code = generate_room_code()
-        admin_id = "0"
-
-        rooms[room_code] = {
-            "password": password,
-            "players": {admin_id: {"name": name, "role": None}},
-            "game_started": False,
-            "admin_id": admin_id,
-        }
-
-        session["room_code"] = room_code
-        session["player_id"] = admin_id
-
-        return redirect(url_for("wait"))
-
-    return render_template("create.html", error=None)
 
 
 @app.route("/join", methods=["GET", "POST"])
@@ -57,21 +34,16 @@ def join():
 
         if room_code not in rooms:
             return render_template("join.html", error="Room not found.")
-
         room = rooms[room_code]
-
         if room["password"] != password:
             return render_template("join.html", error="Wrong password.")
-
         if room["game_started"]:
-            return render_template("join.html", error="Game already started, you can't join now.")
-
+            return render_template("join.html", error="Game already started, can't join now.")
         if not name:
             return render_template("join.html", error="Enter your name.")
 
         player_id = str(len(room["players"]))
         room["players"][player_id] = {"name": name, "role": None}
-
         session["room_code"] = room_code
         session["player_id"] = player_id
 
@@ -83,35 +55,93 @@ def join():
 @app.route("/wait")
 def wait():
     room_code = session.get("room_code")
-    pid = session.get("player_id")
-
     if not room_code or room_code not in rooms:
         return redirect(url_for("index"))
-
     room = rooms[room_code]
-    is_host = pid == room["admin_id"]
-
-    return render_template(
-        "wait.html",
-        players=room["players"],
-        started=room["game_started"],
-        is_host=is_host,
-        room_code=room_code,
-    )
+    return render_template("wait.html", players=room["players"], started=room["game_started"], room_code=room_code)
 
 
-@app.route("/host", methods=["GET", "POST"])
-def host():
+@app.route("/role")
+def role():
     room_code = session.get("room_code")
     pid = session.get("player_id")
-
     if not room_code or room_code not in rooms:
         return redirect(url_for("index"))
+    room = rooms[room_code]
+    if not room["game_started"]:
+        return redirect(url_for("wait"))
+    if not pid or pid not in room["players"]:
+        return redirect(url_for("index"))
+    player = room["players"][pid]
+    return render_template("role.html", player=player, is_host=False)
+
+
+@app.route("/data")
+def data():
+    room_code = session.get("room_code")
+    if not room_code or room_code not in rooms:
+        return jsonify({"players": [], "started": False})
+    room = rooms[room_code]
+    return jsonify({
+        "players": [p["name"] for p in room["players"].values()],
+        "started": room["game_started"],
+    })
+
+
+# ── Admin routes ───────────────────────────────────────────────
+
+def admin_logged_in():
+    return session.get("is_admin") is True
+
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin_login():
+    if admin_logged_in():
+        return redirect(url_for("admin_dashboard"))
+
+    error = None
+    if request.method == "POST":
+        if request.form["password"] == ADMIN_PASSWORD:
+            session["is_admin"] = True
+            return redirect(url_for("admin_dashboard"))
+        error = "Wrong password."
+
+    return render_template("admin_login.html", error=error)
+
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
+    if not admin_logged_in():
+        return redirect(url_for("admin_login"))
+    return render_template("admin_dashboard.html", rooms=rooms)
+
+
+@app.route("/admin/create", methods=["POST"])
+def admin_create_room():
+    if not admin_logged_in():
+        return redirect(url_for("admin_login"))
+
+    password = request.form["password"].strip()
+    if not password:
+        return redirect(url_for("admin_dashboard"))
+
+    room_code = generate_room_code()
+    rooms[room_code] = {
+        "password": password,
+        "players": {},
+        "game_started": False,
+    }
+    return redirect(url_for("admin_host", room_code=room_code))
+
+
+@app.route("/admin/room/<room_code>", methods=["GET", "POST"])
+def admin_host(room_code):
+    if not admin_logged_in():
+        return redirect(url_for("admin_login"))
+    if room_code not in rooms:
+        return redirect(url_for("admin_dashboard"))
 
     room = rooms[room_code]
-
-    if pid != room["admin_id"]:
-        return redirect(url_for("wait"))
 
     if request.method == "POST":
         mafia = int(request.form["mafia"])
@@ -138,65 +168,31 @@ def host():
         for _ in range(random.randint(5, 20)):
             random.shuffle(roles)
 
-        for i, p_id in enumerate(room["players"]):
-            room["players"][p_id]["role"] = roles[i]
+        for i, pid in enumerate(room["players"]):
+            room["players"][pid]["role"] = roles[i]
 
         room["game_started"] = True
+        return redirect(url_for("admin_host", room_code=room_code))
 
-        return redirect(url_for("wait"))
-
-    return render_template("host.html", players=room["players"])
-
-
-@app.route("/role")
-def role():
-    room_code = session.get("room_code")
-    pid = session.get("player_id")
-
-    if not room_code or room_code not in rooms:
-        return redirect(url_for("index"))
-
-    room = rooms[room_code]
-
-    if not room["game_started"]:
-        return redirect(url_for("wait"))
-
-    if not pid or pid not in room["players"]:
-        return redirect(url_for("index"))
-
-    player = room["players"][pid]
-    is_host = pid == room["admin_id"]
-
-    return render_template("role.html", player=player, is_host=is_host)
+    return render_template("admin_host.html", room=room, room_code=room_code)
 
 
-@app.route("/data")
-def data():
-    room_code = session.get("room_code")
-
-    if not room_code or room_code not in rooms:
-        return jsonify({"players": [], "started": False})
-
-    room = rooms[room_code]
-
-    return jsonify({
-        "players": [p["name"] for p in room["players"].values()],
-        "started": room["game_started"],
-    })
+@app.route("/admin/room/<room_code>/reset")
+def admin_reset_room(room_code):
+    if not admin_logged_in():
+        return redirect(url_for("admin_login"))
+    if room_code in rooms:
+        del rooms[room_code]
+    return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/reset")
-def reset():
-    room_code = session.get("room_code")
-    pid = session.get("player_id")
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("is_admin", None)
+    return redirect(url_for("admin_login"))
 
-    if room_code and room_code in rooms:
-        if pid == rooms[room_code]["admin_id"]:
-            del rooms[room_code]
 
-    session.clear()
-    return redirect(url_for("index"))
-
+# ── Run ────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

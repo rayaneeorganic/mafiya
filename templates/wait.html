@@ -2,69 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mafia - Prepa Edition</title>
+    <title>Mafia - Waiting Room</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         * { box-sizing: border-box; font-family: Arial, sans-serif; }
-        body {
-            margin: 0;
-            background: #680202;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        #bady-div {
-            max-width: 400px;
-            margin: 60px auto 20px;
-            padding: 20px;
-            background: #575656;
-            border-radius: 15px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5);
-        }
+        body { margin: 0; background: #680202; color: white; display: flex; flex-direction: column; min-height: 100vh; }
+        #bady-div { max-width: 400px; margin: 60px auto 20px; padding: 20px; background: #575656; border-radius: 15px; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
         img.post-media { display: block; margin: 0 auto 20px; width: 100px; }
         fieldset { border: none; }
-        h3 {
-            text-align: center;
-            color: #ff3b3b;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #ff3b3b;
-            padding-bottom: 5px;
-        }
-        .room-code-box {
-            background: #444;
-            border-radius: 10px;
-            padding: 10px 14px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+        h3 { text-align: center; color: #ff3b3b; margin-bottom: 15px; border-bottom: 2px solid #ff3b3b; padding-bottom: 5px; }
+        .room-code-box { background: #444; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
         .room-code-label { font-size: 12px; color: #aaa; margin-bottom: 2px; }
         .room-code { font-size: 26px; font-weight: bold; letter-spacing: 4px; color: #ff3b3b; }
-        .copy-btn {
-            background: #333;
-            border: none;
-            color: #ccc;
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13px;
-            width: auto;
-        }
+        .copy-btn { background: #333; border: none; color: #ccc; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; width: auto; }
         .copy-btn:hover { background: #222; color: white; }
-        button {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 10px;
-            background: #ff3b3b;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-        }
+        button { width: 100%; padding: 12px; border: none; border-radius: 10px; background: #ff3b3b; color: white; font-size: 16px; cursor: pointer; }
         button:hover { background: #e22b2b; }
-        a { color: #ffaaaa; }
         .footer { text-align: center; margin-top: auto; font-size: 12px; opacity: 0.6; padding: 10px 0; }
     </style>
 </head>
@@ -75,50 +28,32 @@
             <div class="room-code-box">
                 <div>
                     <div class="room-code-label">Room Code</div>
-                    <div class="room-code" id="code">{{ room_code }}</div>
+                    <div class="room-code">{{ room_code }}</div>
                 </div>
                 <button class="copy-btn" onclick="copyCode()">Copy</button>
             </div>
-
             <h3>Players</h3>
             <div id="players"></div>
-
             <p id="status">Waiting for host to start...</p>
-
             <button onclick="goRole()" id="btn" style="display:none;">Show My Role</button>
-
-            <br>
-            {% if is_host %}
-            <a href="/host">→ Host Panel</a>
-            {% endif %}
         </fieldset>
     </div>
-    <div class="footer">
-        <hr>
-        <h5>by: rabii © 2025-2026</h5>
-    </div>
-
+    <div class="footer"><hr><h5>by: rabii © 2025-2026</h5></div>
     <script>
         function update() {
-            fetch("/data")
-                .then(res => res.json())
-                .then(data => {
-                    let html = "";
-                    data.players.forEach(name => { html += "<p>" + name + "</p>"; });
-                    document.getElementById("players").innerHTML = html;
-
-                    if (data.started) {
-                        document.getElementById("status").innerText = "Game started!";
-                        document.getElementById("btn").style.display = "block";
-                    }
-                });
+            fetch("/data").then(r => r.json()).then(data => {
+                let html = "";
+                data.players.forEach(name => { html += "<p>" + name + "</p>"; });
+                document.getElementById("players").innerHTML = html;
+                if (data.started) {
+                    document.getElementById("status").innerText = "Game started!";
+                    document.getElementById("btn").style.display = "block";
+                }
+            });
         }
-
         setInterval(update, 1000);
         update();
-
         function goRole() { window.location.href = "/role"; }
-
         function copyCode() {
             navigator.clipboard.writeText("{{ room_code }}").then(() => {
                 const btn = document.querySelector(".copy-btn");

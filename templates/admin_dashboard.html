@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { margin: 0; background: #1a1a1a; color: white; min-height: 100vh; }
+        .topbar { background: #2a2a2a; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ff3b3b; }
+        .topbar h2 { margin: 0; color: #ff3b3b; font-size: 18px; }
+        .topbar a { color: #aaa; font-size: 13px; text-decoration: none; }
+        .topbar a:hover { color: white; }
+        .content { max-width: 600px; margin: 40px auto; padding: 0 16px; }
+        .card { background: #2a2a2a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .card h3 { margin: 0 0 16px; color: #ff3b3b; font-size: 16px; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        label { display: block; margin-bottom: 6px; font-size: 13px; color: #aaa; }
+        input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #1a1a1a; color: white; outline: none; font-size: 14px; margin-bottom: 12px; }
+        input:focus { border-color: #ff3b3b; }
+        .btn { display: inline-block; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; text-decoration: none; }
+        .btn-red { background: #ff3b3b; color: white; }
+        .btn-red:hover { background: #e22b2b; }
+        .btn-gray { background: #444; color: white; }
+        .btn-gray:hover { background: #555; }
+        .btn-danger { background: #5a0000; color: #ff6666; }
+        .btn-danger:hover { background: #7a0000; }
+        .room-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333; }
+        .room-row:last-child { border-bottom: none; }
+        .room-code { font-size: 20px; font-weight: bold; letter-spacing: 3px; color: #ff3b3b; }
+        .room-info { font-size: 13px; color: #aaa; margin-top: 3px; }
+        .room-actions { display: flex; gap: 8px; }
+        .empty { color: #666; font-size: 14px; text-align: center; padding: 10px 0; }
+        .footer { text-align: center; margin-top: 40px; font-size: 12px; opacity: 0.4; padding: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h2>Admin Dashboard</h2>
+        <a href="/admin/logout">Logout</a>
+    </div>
+
+    <div class="content">
+        <div class="card">
+            <h3>Create New Room</h3>
+            <form method="POST" action="/admin/create">
+                <label>Room password (players will need this to join)</label>
+                <input type="text" name="password" placeholder="e.g. game123" required autocomplete="off">
+                <button class="btn btn-red" type="submit">Create Room</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3>Active Rooms ({{ rooms|length }})</h3>
+            {% if rooms %}
+                {% for code, room in rooms.items() %}
+                <div class="room-row">
+                    <div>
+                        <div class="room-code">{{ code }}</div>
+                        <div class="room-info">
+                            {{ room.players|length }} player(s) &nbsp;·&nbsp;
+                            {% if room.game_started %}Game started{% else %}Waiting{% endif %}
+                            &nbsp;·&nbsp; pw: <strong>{{ room.password }}</strong>
+                        </div>
+                    </div>
+                    <div class="room-actions">
+                        <a href="/admin/room/{{ code }}" class="btn btn-gray">Manage</a>
+                        <a href="/admin/room/{{ code }}/reset" class="btn btn-danger"
+                           onclick="return confirm('Delete room {{ code }}?')">Delete</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty">No active rooms. Create one above.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="footer"><hr><h5>by: rabii © 2025-2026</h5></div>
+</body>
+</html>
